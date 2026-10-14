@@ -1,5 +1,5 @@
 // src/TodoController.js
-// GRASP Controller: receives the Add action and coordinates service + renderer.
+// GRASP Controller: one method per kind of task.
 export class TodoController {
   constructor(todoService, todoRenderer) {
     this.todoService = todoService;
@@ -10,8 +10,16 @@ export class TodoController {
     this.todoRenderer.render(this.todoService);
   }
 
-  addTask(description, type) {
-    const newId = this.todoService.addTask(description, type);
+  addTask(description) {
+    const newId = this.todoService.addTask(description);
+    if (newId) {
+      this.todoRenderer.render(this.todoService, newId);
+    }
+    return newId;
+  }
+
+  addUrgentTask(description) {
+    const newId = this.todoService.addUrgentTask(description);
     if (newId) {
       this.todoRenderer.render(this.todoService, newId);
     }
