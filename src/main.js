@@ -2,6 +2,8 @@
 import { TodoRenderer } from './TodoRenderer.js';
 import { TodoController } from './TodoController.js';
 import { LocalStorageFactory } from './StorageFactory.js';
+import { IdeaBox } from './IdeaBox.js';
+import { IdeaBoxAdapter } from './IdeaBoxAdapter.js';
 
 const factory    = new LocalStorageFactory();
 const service    = factory.createService();
@@ -28,4 +30,12 @@ input.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
     addBtn.click();
   }
+});
+
+// Adapter: IdeaBox gives an object, the adapter turns it into a plain string
+const suggestions = new IdeaBoxAdapter(new IdeaBox());
+const suggestBtn  = document.getElementById('suggest-btn');
+
+suggestBtn.addEventListener('click', () => {
+  controller.addTask(suggestions.getSuggestion());
 });
