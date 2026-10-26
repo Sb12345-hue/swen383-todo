@@ -1,0 +1,39 @@
+@startuml
+title Sequence 3 - Organiser adds a session (Observer)
+autonumber
+actor Organiser as U
+participant AppController
+participant AuthService
+participant GroupManager
+participant "g : StudyGroup" as G
+participant "m : Student\n(GroupObserver)" as M
+
+U -> AppController : addSession(groupId, start, location)
+AppController -> AuthService : getCurrentStudent()
+AuthService --> AppController : organiser
+AppController -> GroupManager : addSession(organiser, groupId, start, location)
+GroupManager -> GroupManager : findGroup(groupId)
+
+alt group not found
+  GroupManager --> AppController : error(reason)
+  AppController --> U : show error
+else group found
+  GroupManager -> G : addSession(organiser, start, location)
+  alt not the organiser, group closed or start in the past
+    G --> GroupManager : error(reason)
+    GroupManager --> AppController : error(reason)
+    AppController --> U : show error
+  else ok
+    create participant "s : StudySession" as S
+    G -> S : new StudySession(start, location)
+    G -> G : notifyObservers("New session on " + start)
+    loop for each observer
+      G -> M : update(g, message)
+      M -> M : notifications.add(message)
+    end
+    G --> GroupManager : s
+    GroupManager --> AppController : s
+    AppController --> U : show session
+  end
+end
+@enduml
