@@ -1,0 +1,42 @@
+@startuml
+title Sequence 4 - Student leaves a group (detach and close)
+autonumber
+actor Student as U
+participant AppController
+participant AuthService
+participant GroupManager
+participant "g : StudyGroup" as G
+participant "m : Student\n(GroupObserver)" as M
+
+U -> AppController : leaveGroup(groupId)
+AppController -> AuthService : getCurrentStudent()
+AuthService --> AppController : student
+AppController -> GroupManager : leaveGroup(student, groupId)
+GroupManager -> GroupManager : findGroup(groupId)
+
+alt group not found
+  GroupManager --> AppController : error(reason)
+  AppController --> U : show error
+else group found
+  GroupManager -> G : removeMember(student)
+  alt student is not a member
+    G --> GroupManager : error(reason)
+    GroupManager --> AppController : error(reason)
+    AppController --> U : show error
+  else ok
+    G -> G : members.remove(student)
+    G -> G : detach(student)
+    opt student is the organiser
+      G -> G : close()
+      note right of G : closed = true
+      G -> G : notifyObservers("Group closed")
+      loop for each remaining observer
+        G -> M : update(g, "Group closed")
+      end
+    end
+    G --> GroupManager
+    GroupManager --> AppController
+    AppController --> U : "You left the group"
+  end
+end
+@enduml
