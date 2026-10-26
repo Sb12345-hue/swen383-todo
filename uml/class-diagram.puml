@@ -1,0 +1,111 @@
+@startuml
+title Study Group App - Class Diagram (Part 1)
+ 
+class AppController {
+  + register(name : String, email : String, password : String) : Student
+  + login(email : String, password : String) : Student
+  + browseGroups(courseCode : String) : List<StudyGroup>
+  + browseGroupsWithSpace() : List<StudyGroup>
+  + getMyGroups() : List<StudyGroup>
+  + createGroup(courseCode : String, name : String, maxMembers : int) : StudyGroup
+  + joinGroup(groupId : int) : void
+  + leaveGroup(groupId : int) : void
+  + addSession(groupId : int, start : LocalDateTime, location : String) : StudySession
+}
+ 
+class AuthService {
+  + register(name : String, email : String, password : String) : Student
+  + login(email : String, password : String) : Student
+  + getCurrentStudent() : Student
+}
+ 
+class GroupManager {
+  + addCourse(c : Course) : void
+  + findCourse(code : String) : Course
+  + browseGroups(filter : GroupFilter) : List<StudyGroup>
+  + getMyGroups(s : Student) : List<StudyGroup>
+  + createGroup(organiser : Student, c : Course, name : String, maxMembers : int) : StudyGroup
+  + joinGroup(s : Student, groupId : int) : void
+  + leaveGroup(s : Student, groupId : int) : void
+  + addSession(s : Student, groupId : int, start : LocalDateTime, location : String) : StudySession
+  - findGroup(id : int) : StudyGroup
+}
+ 
+class GroupFactory <<Simple Factory>> {
+  - nextId : int
+  + createGroup(organiser : Student, c : Course, name : String, maxMembers : int) : StudyGroup
+  - validate(c : Course, name : String, maxMembers : int) : void
+}
+ 
+interface GroupFilter <<Strategy>> {
+  + matches(g : StudyGroup) : boolean
+}
+ 
+class CourseFilter {
+  - course : Course
+  + matches(g : StudyGroup) : boolean
+}
+ 
+class HasSpaceFilter {
+  + matches(g : StudyGroup) : boolean
+}
+ 
+class StudyGroup {
+  - id : int
+  - name : String
+  - maxMembers : int
+  - closed : boolean
+  + addMember(s : Student) : void
+  + removeMember(s : Student) : void
+  + addSession(by : Student, start : LocalDateTime, location : String) : StudySession
+  + attach(o : GroupObserver) : void
+  + detach(o : GroupObserver) : void
+  + isMember(s : Student) : boolean
+  + isFull() : boolean
+  + isClosed() : boolean
+  - close() : void
+  - notifyObservers(message : String) : void
+}
+ 
+class StudySession {
+  - start : LocalDateTime
+  - location : String
+}
+ 
+class Course {
+  - code : String
+  - title : String
+}
+ 
+interface GroupObserver <<Observer>> {
+  + update(group : StudyGroup, message : String) : void
+}
+ 
+class Student {
+  - id : int
+  - name : String
+  - email : String
+  - passwordHash : String
+  - notifications : List<String>
+  + update(group : StudyGroup, message : String) : void
+}
+ 
+AppController   -->  "1"    AuthService    : auth
+AppController   -->  "1"    GroupManager   : manager
+AuthService     -->  "0..*" Student        : students
+AuthService     -->  "0..1" Student        : currentStudent
+GroupManager    -->  "1"    GroupFactory   : factory
+GroupManager    -->  "0..*" StudyGroup     : groups
+GroupManager    -->  "0..*" Course         : courses
+GroupManager    ..>         GroupFilter    : uses
+GroupFactory    ..>         StudyGroup     : <<create>>
+CourseFilter    ..|>        GroupFilter
+HasSpaceFilter  ..|>        GroupFilter
+ 
+StudyGroup "0..*" -->  "1"    Course        : course
+StudyGroup "0..*" -->  "1"    Student       : organiser
+StudyGroup "0..*" -->  "0..*" Student       : members
+StudyGroup "1"    *--  "0..*" StudySession  : sessions
+StudyGroup        -->  "0..*" GroupObserver : observers
+Student           ..|>        GroupObserver
+@enduml
