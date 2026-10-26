@@ -1,0 +1,33 @@
+@startuml
+title Sequence 1 - Create a study group (Simple Factory)
+autonumber
+actor Student as U
+participant AppController
+participant AuthService
+participant GroupManager
+participant GroupFactory
+
+U -> AppController : createGroup(courseCode, name, maxMembers)
+AppController -> AuthService : getCurrentStudent()
+AuthService --> AppController : organiser
+AppController -> GroupManager : findCourse(courseCode)
+GroupManager --> AppController : course (or null)
+AppController -> GroupManager : createGroup(organiser, course, name, maxMembers)
+GroupManager -> GroupFactory : createGroup(organiser, course, name, maxMembers)
+GroupFactory -> GroupFactory : validate(course, name, maxMembers)
+
+alt course is null, name empty or maxMembers out of range
+  GroupFactory --> GroupManager : error(reason)
+  GroupManager --> AppController : error(reason)
+  AppController --> U : show error
+else valid
+  create participant "g : StudyGroup" as G
+  GroupFactory -> G : new StudyGroup(nextId, name, course, organiser, maxMembers)
+  GroupFactory -> G : addMember(organiser)
+  G -> G : attach(organiser)
+  GroupFactory --> GroupManager : g
+  GroupManager -> GroupManager : groups.add(g)
+  GroupManager --> AppController : g
+  AppController --> U : show new group
+end
+@enduml
