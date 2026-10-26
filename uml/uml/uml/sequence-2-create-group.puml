@@ -1,0 +1,53 @@
+@startuml
+title Sequence 2 - Browse and join a group
+autonumber
+actor Student as U
+participant AppController
+participant AuthService
+participant GroupManager
+participant "f : CourseFilter\n(GroupFilter)" as F
+participant "g : StudyGroup" as G
+
+== Browse (Strategy) ==
+U -> AppController : browseGroups(courseCode)
+AppController -> GroupManager : findCourse(courseCode)
+GroupManager --> AppController : course (or null)
+alt course not found
+  AppController --> U : show error
+else course found
+  create F
+  AppController -> F : new CourseFilter(course)
+  AppController -> GroupManager : browseGroups(f)
+  loop for each open group
+    GroupManager -> F : matches(group)
+    F --> GroupManager : true / false
+  end
+  GroupManager --> AppController : matching groups
+  AppController --> U : show list
+end
+
+== Join ==
+U -> AppController : joinGroup(groupId)
+AppController -> AuthService : getCurrentStudent()
+AuthService --> AppController : student
+AppController -> GroupManager : joinGroup(student, groupId)
+GroupManager -> GroupManager : findGroup(groupId)
+
+alt group not found
+  GroupManager --> AppController : error(reason)
+  AppController --> U : show error
+else group found
+  GroupManager -> G : addMember(student)
+  alt closed, full or already a member
+    G --> GroupManager : error(reason)
+    GroupManager --> AppController : error(reason)
+    AppController --> U : show error
+  else ok
+    G -> G : members.add(student)
+    G -> G : attach(student)
+    G --> GroupManager
+    GroupManager --> AppController
+    AppController --> U : "You joined the group"
+  end
+end
+@enduml
